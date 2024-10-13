@@ -10,6 +10,8 @@ I need to do the following:
 	* html will output in a grid of 50x50 for each character, 10 chars wide
 	* This will allow us to know the x and y coords of the upper left corner of each character based on their order in the dom
 	* Need to figure out how to actually capture each pixel of the screen from the location coords + 50,50 and render each pixel to an image
+	* Actually, perhaps we don't need to generate an image to extract the pixel data from each rendered character. If we can get the pixel data from the screen to generate the image, we could probably just write that pixel data directly into the data for the next step?
+		* Yes, so using the html5 canvas API, we can forgo the image generation and simply get the pixel data we need.
 * Extract the pixel data as features for each character
 	* For each character, analyze each pixel and record it in order as a single vector.
 	* for example if I had a 4x4 image of the letter A, it would be an array with a length of 16 elements, each representing a single pixel.
