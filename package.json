@@ -1,0 +1,25 @@
+{
+  "name": "@color-theory/simple-ocr-test",
+  "version": "1.0.0",
+  "description": "A simple OCR implementation for learning.",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/color-theory/simple-ocr-test.git"
+  },
+  "keywords": [
+    "OCR",
+    "test",
+    "simple",
+    "learning"
+  ],
+  "author": "color-theory",
+  "license": "JSON",
+  "bugs": {
+    "url": "https://github.com/color-theory/simple-ocr-test/issues"
+  },
+  "homepage": "https://github.com/color-theory/simple-ocr-test#readme"
+}
