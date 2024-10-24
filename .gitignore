@@ -1,2 +1,5 @@
 node_modules
 dist
+src/fonts/*
+!src/fonts/README.md
+src/data/vectors.json
