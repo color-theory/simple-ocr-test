@@ -5,15 +5,16 @@ import { createCanvas, registerFont } from 'canvas';
 const canvas = createCanvas(50, 50);
 const ctx = canvas.getContext('2d');
 
-const characterData = fs.readFileSync('../data/characters-raw.txt', 'utf8');
+const characterData = fs.readFileSync(path.resolve(__dirname, '../data/characters-raw.txt'), 'utf8');
 const characters = characterData.split('\n');
 
 const vectors: { character: string, pixelData: number[] }[] = [];
 
 const getFonts = () => {
-  const files = fs.readdirSync('../fonts');
+  const fontsPath = path.resolve(__dirname, '../fonts');
+  const files = fs.readdirSync(fontsPath);
   const ttfFiles = files.filter(file => path.extname(file).toLowerCase() === '.ttf');
-  const result = ttfFiles.map(file => ({ name: file, path: path.join('../fonts', file) }));
+  const result = ttfFiles.map(file => ({ name: file, path: path.join(fontsPath, file) }));
   return result;
 }
 
@@ -74,5 +75,5 @@ fonts.forEach((font) => {
     });
   });
 });
-fs.writeFileSync('../data/vectors.json', JSON.stringify(vectors, null, 2));
+fs.writeFileSync(path.resolve(__dirname, '../data/vectors.json'), JSON.stringify(vectors, null, 2));
 console.log('Character vectors generated and saved to vectors.json');

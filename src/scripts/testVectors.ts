@@ -1,10 +1,12 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { createCanvas } from 'canvas';
 
 const canvas = createCanvas(50, 50);
 const ctx = canvas.getContext('2d');
 
-const vectorsRaw = fs.readFileSync('../data/vectors.json', 'utf8');
+const vectorPath = path.resolve(__dirname, '../data/vectors.json');
+const vectorsRaw = fs.readFileSync(vectorPath, 'utf8');
 const vectors = JSON.parse(vectorsRaw);
 
 const fontStyle = 'italic';
