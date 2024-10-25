@@ -6,5 +6,7 @@
  * 
  */
 
-import App from './app';
-export default App;
+import ocr from './app';
+
+// Run the OCR function with the image path provided as an argument
+ocr(process.argv[2]);

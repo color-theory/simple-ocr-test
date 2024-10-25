@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createCanvas, registerFont } from 'canvas';
+import { cropToBoundingBox, scaleImage, convertToGreyscale, extractFeatures } from '../app';
+import { binarize } from '../app/otsu';
+import { printCharacter } from './util';
 
 const canvas = createCanvas(50, 50);
 const ctx = canvas.getContext('2d');
@@ -27,45 +30,18 @@ const registerFonts = (fonts: { name: string, path: string }[]) => {
 const fonts = getFonts();
 registerFonts(fonts);
 
-function printCharacter(character: string, font: string, fontStyle: string) {
-  const canvasSize = 50;
-  let fontSize = 50;
-  ctx.font = `${fontStyle} ${fontSize}px ${font}`;
-
-  let textMetrics = ctx.measureText(character);
-
-  // Reduce font size to fit within the canvas
-  while (textMetrics.width > canvasSize ||
-    (textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent) > canvasSize) {
-    fontSize--;
-    ctx.font = `${fontStyle} ${fontSize}px ${font}`;
-    textMetrics = ctx.measureText(character);
-  }
-
-  // Clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the character in the upper-left corner (0, 0)
-  const x = 0;
-  const y = textMetrics.actualBoundingBoxAscent;  // Start drawing from the baseline
-
-  ctx.fillText(character, x, y);
-}
-
 const fontStyles = ["normal", "italic", "bold"];
 fonts.forEach((font) => {
   fontStyles.forEach((fontStyle) => {
     characters.forEach((character: string,) => {
-      printCharacter(character, font.name, fontStyle);
+      printCharacter(character, font.name, fontStyle, canvas, ctx);
 
-      const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let visiblePixels = [];
+      convertToGreyscale(canvas, ctx);
+      binarize(canvas, ctx);
+      cropToBoundingBox(canvas, ctx);
+      scaleImage(canvas, ctx, 50, 50);
 
-      for (let i = 0; i < pixelData.length; i += 4) {
-        // Check if the alpha value (4th component) is greater than 0 (non-transparent)
-        let alpha = pixelData[i + 3];
-        visiblePixels.push(alpha > 0 ? 1 : 0);
-      }
+      const visiblePixels = extractFeatures(canvas, ctx);
 
       vectors.push({
         character,
