@@ -1,19 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createCanvas, registerFont } from 'canvas';
+import { cropToBoundingBox, scaleImage, convertToGreyscale, extractFeatures } from '../app';
+import { binarize } from '../app/otsu';
+import { printCharacter } from './util';
 
 const canvas = createCanvas(50, 50);
 const ctx = canvas.getContext('2d');
 
-const characterData = fs.readFileSync('../data/characters-raw.txt', 'utf8');
+const characterData = fs.readFileSync(path.resolve(__dirname, '../data/characters-raw.txt'), 'utf8');
 const characters = characterData.split('\n');
 
 const vectors: { character: string, pixelData: number[] }[] = [];
 
 const getFonts = () => {
-  const files = fs.readdirSync('../fonts');
+  const fontsPath = path.resolve(__dirname, '../fonts');
+  const files = fs.readdirSync(fontsPath);
   const ttfFiles = files.filter(file => path.extname(file).toLowerCase() === '.ttf');
-  const result = ttfFiles.map(file => ({ name: file, path: path.join('../fonts', file) }));
+  const result = ttfFiles.map(file => ({ name: file, path: path.join(fontsPath, file) }));
   return result;
 }
 
@@ -26,45 +30,18 @@ const registerFonts = (fonts: { name: string, path: string }[]) => {
 const fonts = getFonts();
 registerFonts(fonts);
 
-function printCharacter(character: string, font: string, fontStyle: string) {
-  const canvasSize = 50;
-  let fontSize = 50;
-  ctx.font = `${fontStyle} ${fontSize}px ${font}`;
-
-  let textMetrics = ctx.measureText(character);
-
-  // Reduce font size to fit within the canvas
-  while (textMetrics.width > canvasSize ||
-    (textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent) > canvasSize) {
-    fontSize--;
-    ctx.font = `${fontStyle} ${fontSize}px ${font}`;
-    textMetrics = ctx.measureText(character);
-  }
-
-  // Clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Draw the character in the upper-left corner (0, 0)
-  const x = 0;
-  const y = textMetrics.actualBoundingBoxAscent;  // Start drawing from the baseline
-
-  ctx.fillText(character, x, y);
-}
-
 const fontStyles = ["normal", "italic", "bold"];
 fonts.forEach((font) => {
   fontStyles.forEach((fontStyle) => {
     characters.forEach((character: string,) => {
-      printCharacter(character, font.name, fontStyle);
+      printCharacter(character, font.name, fontStyle, canvas, ctx);
 
-      const pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-      let visiblePixels = [];
+      convertToGreyscale(canvas, ctx);
+      binarize(canvas, ctx);
+      cropToBoundingBox(canvas, ctx);
+      scaleImage(canvas, ctx, 50, 50);
 
-      for (let i = 0; i < pixelData.length; i += 4) {
-        // Check if the alpha value (4th component) is greater than 0 (non-transparent)
-        let alpha = pixelData[i + 3];
-        visiblePixels.push(alpha > 0 ? 1 : 0);
-      }
+      const visiblePixels = extractFeatures(canvas, ctx);
 
       vectors.push({
         character,
@@ -74,5 +51,5 @@ fonts.forEach((font) => {
     });
   });
 });
-fs.writeFileSync('../data/vectors.json', JSON.stringify(vectors, null, 2));
+fs.writeFileSync(path.resolve(__dirname, '../data/vectors.json'), JSON.stringify(vectors, null, 2));
 console.log('Character vectors generated and saved to vectors.json');
