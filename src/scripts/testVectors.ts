@@ -1,8 +1,8 @@
 import { createCanvas } from 'canvas';
 import { knn } from '../app/knn';
 import { getReferenceVectors } from '../app/vectors';
-import { convertToGreyscale, scaleImage, cropToBoundingBox, extractFeatures } from '../app';
-import { binarize } from '../app/otsu';
+import { extractCharacterFeatures } from '../app/extraction';
+import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter } from './util';
 
 const canvas = createCanvas(50, 50);
@@ -17,7 +17,7 @@ convertToGreyscale(canvas, ctx);
 binarize(canvas, ctx);
 cropToBoundingBox(canvas, ctx);
 scaleImage(canvas, ctx, 50, 50);
-const visiblePixels = extractFeatures(canvas, ctx);
+const visiblePixels = extractCharacterFeatures(canvas, ctx);
 
 const vectors = getReferenceVectors();
 const k = 10;
