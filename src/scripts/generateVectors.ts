@@ -4,12 +4,13 @@ import { createCanvas, registerFont } from 'canvas';
 import { extractCharacterFeatures } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter } from './util';
+import { vectorSize } from '../app/config';
 
-const canvas = createCanvas(50, 50);
+const canvas = createCanvas(vectorSize, vectorSize);
 const ctx = canvas.getContext('2d');
 
 const characterData = fs.readFileSync(path.resolve(__dirname, '../data/characters-raw.txt'), 'utf8');
-const characters = characterData.split('\n');
+const characters = characterData.split(/\r?\n/);
 
 const vectors: { character: string, pixelData: number[] }[] = [];
 
@@ -17,7 +18,7 @@ const getFonts = () => {
   const fontsPath = path.resolve(__dirname, '../fonts');
   const files = fs.readdirSync(fontsPath);
   const ttfFiles = files.filter(file => path.extname(file).toLowerCase() === '.ttf');
-  const result = ttfFiles.map(file => ({ name: file, path: path.join(fontsPath, file) }));
+  const result = ttfFiles.map(file => ({ name: file.slice(0,-4), path: path.join(fontsPath, file) }));
   return result;
 }
 
@@ -28,18 +29,20 @@ const registerFonts = (fonts: { name: string, path: string }[]) => {
 }
 
 const fonts = getFonts();
+console.log(`Found ${fonts.length} fonts. Registering fonts...`);
 registerFonts(fonts);
+console.log('Fonts registered. Generating reference vectors...');
 
-const fontStyles = ["normal", "italic", "bold"];
+const fontStyles = ["normal"];
 fonts.forEach((font) => {
   fontStyles.forEach((fontStyle) => {
     characters.forEach((character: string,) => {
-      printCharacter(character, font.name, fontStyle, canvas, ctx);
+      printCharacter(canvas, ctx, character, font.name, fontStyle, vectorSize);
 
       convertToGreyscale(canvas, ctx);
       binarize(canvas, ctx);
       cropToBoundingBox(canvas, ctx);
-      scaleImage(canvas, ctx, 50, 50);
+      scaleImage(canvas, ctx, vectorSize, vectorSize);
 
       const visiblePixels = extractCharacterFeatures(canvas, ctx);
 

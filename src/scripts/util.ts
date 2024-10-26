@@ -1,7 +1,7 @@
 import { Canvas, CanvasRenderingContext2D } from 'canvas';
 
-export function printCharacter(character: string, font: string, fontStyle: string, canvas: Canvas, ctx: CanvasRenderingContext2D) {
-	const canvasSize = 50;
+export function printCharacter( canvas: Canvas, ctx: CanvasRenderingContext2D, character: string, font: string, fontStyle: string, vectorSize: number ) {
+	const canvasSize = vectorSize;
 
 	canvas.width = canvasSize;
 	canvas.height = canvasSize;

@@ -3,11 +3,12 @@
  * @param image - The image to be processed
  * @returns The text extracted from the image
  */
-import { loadImage, Image, Canvas, CanvasRenderingContext2D } from 'canvas';
+import { loadImage, Image } from 'canvas';
 import { getReferenceVectors } from './vectors';
 import { knn } from './knn';
-import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, scaleImage, binarize, prepareSegment } from './preprocess';
+import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareSegment } from './preprocess';
 import { segmentImage, extractCharacterFeatures } from './extraction';
+import { vectorSize } from './config';
 
 export const preprocessImage = (image: Image) => {
 	const { canvas, ctx } = createAndLoadCanvas(image);
@@ -25,11 +26,11 @@ const ocr = (imagePath: string) => {
 		let outputText = '';
 
 		segments.forEach((segment) => {
-			const { segmentCanvas, segmentCtx } = prepareSegment(segment, canvas);
+			const { segmentCanvas, segmentCtx } = prepareSegment( canvas, segment, vectorSize);
 			const features = extractCharacterFeatures(segmentCanvas, segmentCtx);
 
 			// for (let i = 0; i < features.length; i++) {
-			// 	if (i % 50 === 0) {
+			// 	if (i % segmentCanvas.width === 0) {
 			// 		console.log('');
 			// 	}
 

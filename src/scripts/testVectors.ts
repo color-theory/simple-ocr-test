@@ -4,28 +4,29 @@ import { getReferenceVectors } from '../app/vectors';
 import { extractCharacterFeatures } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter } from './util';
+import { vectorSize } from '../app/config';
 
-const canvas = createCanvas(50, 50);
+const canvas = createCanvas(vectorSize, vectorSize);
 const ctx = canvas.getContext('2d');
 
-const fontStyle = 'italic';
-const fontName = 'Georgia';
-const characterToTest = 'b';
+const fontStyle = 'normal';
+const fontName = 'Arial';
+const characterToTest = '8';
 
-printCharacter(characterToTest, fontName, fontStyle, canvas, ctx);
+printCharacter( canvas, ctx, characterToTest, fontName, fontStyle, vectorSize );
 convertToGreyscale(canvas, ctx);
 binarize(canvas, ctx);
 cropToBoundingBox(canvas, ctx);
-scaleImage(canvas, ctx, 50, 50);
+scaleImage(canvas, ctx, vectorSize, vectorSize);
 const visiblePixels = extractCharacterFeatures(canvas, ctx);
 
 const vectors = getReferenceVectors();
-const k = 10;
+const k = 5;
 const bestGuess = knn(vectors, visiblePixels, k);
 console.log(`\nBest guess(with weighted average out of ${k} votes): ${bestGuess}`);
 
 for (let i = 0; i < visiblePixels.length; i++) {
-	if (i % 50 === 0) {
+	if (i % vectorSize === 0) {
 		console.log('');
 	}
 
