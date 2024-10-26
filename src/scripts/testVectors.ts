@@ -9,7 +9,7 @@ const canvas = createCanvas(50, 50);
 const ctx = canvas.getContext('2d');
 
 const fontStyle = 'italic';
-const fontName = 'Helvetica Neue';
+const fontName = 'Georgia';
 const characterToTest = 'b';
 
 printCharacter(characterToTest, fontName, fontStyle, canvas, ctx);
