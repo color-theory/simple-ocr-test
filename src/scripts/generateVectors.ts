@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createCanvas, registerFont } from 'canvas';
-import { cropToBoundingBox, scaleImage, convertToGreyscale, extractFeatures } from '../app';
-import { binarize } from '../app/otsu';
+import { extractCharacterFeatures } from '../app/extraction';
+import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter } from './util';
 
 const canvas = createCanvas(50, 50);
@@ -41,7 +41,7 @@ fonts.forEach((font) => {
       cropToBoundingBox(canvas, ctx);
       scaleImage(canvas, ctx, 50, 50);
 
-      const visiblePixels = extractFeatures(canvas, ctx);
+      const visiblePixels = extractCharacterFeatures(canvas, ctx);
 
       vectors.push({
         character,
