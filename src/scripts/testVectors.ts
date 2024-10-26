@@ -5,6 +5,7 @@ import { extractCharacterFeatures } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter } from './util';
 import { vectorSize } from '../app/config';
+import { visualizeVector } from '../app/util';
 
 const canvas = createCanvas(vectorSize, vectorSize);
 const ctx = canvas.getContext('2d');
@@ -24,11 +25,4 @@ const vectors = getReferenceVectors();
 const k = 5;
 const bestGuess = knn(vectors, visiblePixels, k);
 console.log(`\nBest guess(with weighted average out of ${k} votes): ${bestGuess}`);
-
-for (let i = 0; i < visiblePixels.length; i++) {
-	if (i % vectorSize === 0) {
-		console.log('');
-	}
-
-	process.stdout.write(visiblePixels[i] === 1 ? 'X' : ' ');
-}
+visualizeVector( visiblePixels, vectorSize );

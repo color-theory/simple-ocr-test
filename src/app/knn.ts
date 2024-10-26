@@ -24,7 +24,6 @@ const vote = (guesses: any) => {
 	const votesWithAverages = Array.from(votes.entries()).map(([character, [confidence, count]]) => {
 		return [character, confidence / count];
 	});
-	console.log(votesWithAverages);
 
 	const sortedVotes = votesWithAverages.sort((a, b) => b[1] - a[1]);
 

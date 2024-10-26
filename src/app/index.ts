@@ -9,6 +9,7 @@ import { knn } from './knn';
 import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareSegment } from './preprocess';
 import { segmentImage, extractCharacterFeatures } from './extraction';
 import { vectorSize } from './config';
+import { progressBar } from './util';
 
 export const preprocessImage = (image: Image) => {
 	const { canvas, ctx } = createAndLoadCanvas(image);
@@ -25,25 +26,17 @@ const ocr = (imagePath: string) => {
 		const segments = segmentImage(canvas, ctx);
 		let outputText = '';
 
-		segments.forEach((segment) => {
+		segments.forEach((segment, index) => {
+			progressBar(index + 1, segments.length, "Analyzing segments:");
 			const { segmentCanvas, segmentCtx } = prepareSegment( canvas, segment, vectorSize);
 			const features = extractCharacterFeatures(segmentCanvas, segmentCtx);
-
-			// for (let i = 0; i < features.length; i++) {
-			// 	if (i % segmentCanvas.width === 0) {
-			// 		console.log('');
-			// 	}
-
-			// 	process.stdout.write(features[i] === 1 ? 'X' : ' ');
-			// }
 
 			const vectors = getReferenceVectors();
 			const k = 10;
 			const bestGuess = knn(vectors, features, k);
 			outputText += bestGuess;
-			// console.log(`\nBest guess(with weighted average out of ${k} votes): ${bestGuess}\n\n\n`);
 		});
-		console.log(`\nBest guess: ${outputText}\n\n\n`);
+		console.log(`\n\nBest guess: ${outputText}\n`);
 	});
 }
 
