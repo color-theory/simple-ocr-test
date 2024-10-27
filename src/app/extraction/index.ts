@@ -1,6 +1,44 @@
 import { Canvas, CanvasRenderingContext2D } from 'canvas';
+export const getLineSegments = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
+	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	const data = imageData.data;
+	const rowHistogram = new Array(canvas.height).fill(0);
 
-export const segmentImage = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
+	for (let y = 0; y < canvas.height; y++) {
+		for (let x = 0; x < canvas.width; x++) {
+			const i = (y * canvas.width + x) * 4;
+			if (data[i] === 0) {
+				rowHistogram[y]++;
+			}
+		}
+	}
+
+	const lines = [];
+	let lineStart = 0;
+	let lineEnd = 0;
+	let inLine = false;
+
+	for (let y = 0; y < canvas.height; y++) {
+		if (rowHistogram[y] > 0 && !inLine) {
+			lineStart = y;
+			inLine = true;
+		} else if (rowHistogram[y] === 0 && inLine) {
+			lineEnd = y;
+			inLine = false;
+			lines.push({ start: lineStart, end: lineEnd });
+		}
+	}
+
+	return lines;
+}
+
+export const getCharacterSegments = (canvas: Canvas, ctx: CanvasRenderingContext2D, lineHeight: number) => {
+	const columnHistogram = calculateColumnHistogram(canvas, ctx);
+	const segments = segmentCharacters(columnHistogram, lineHeight);
+	return segments;
+};
+
+const calculateColumnHistogram = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	const data = imageData.data;
 	const columnHistogram = new Array(canvas.width).fill(0);
@@ -14,28 +52,49 @@ export const segmentImage = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
 		}
 	}
 
-	const segments = [];
-	let segmentStart = 0;
-	let segmentEnd = 0;
-	let inSegment = false;
+	return columnHistogram;
+};
 
-	for (let x = 0; x < canvas.width; x++) {
+const segmentCharacters = (columnHistogram: number[], lineHeight: number) => {
+	const segments: {start: number, end: number, type: string}[] = [];
+	let segmentStart = 0;
+	let inSegment = false;
+	let outOfSegmentCount = 0;
+	let averageCharacterWidth = lineHeight / 2;
+	let gapSizes = [];
+
+	for (let x = 0; x < columnHistogram.length; x++) {
 		if (columnHistogram[x] > 0 && !inSegment) {
+			segments.push({ start: segmentStart, end: x, type: 'gap' });
+			gapSizes.push(x - segmentStart);
 			segmentStart = x;
 			inSegment = true;
+			outOfSegmentCount = 0;
 		} else if (columnHistogram[x] === 0 && inSegment) {
-			segmentEnd = x;
+			const segmentEnd = x;
 			inSegment = false;
-			segments.push({ start: segmentStart, end: segmentEnd });
+			segments.push({ start: segmentStart, end: segmentEnd, type: 'character' });
+			averageCharacterWidth = (averageCharacterWidth + (segmentEnd - segmentStart)) / 2;
+			segmentStart = x;
+		} else if (columnHistogram[x] === 0) {
+			outOfSegmentCount++;
 		}
 	}
-
 	if (inSegment) {
-		segments.push({ start: segmentStart, end: canvas.width });
+		segments.push({ start: segmentStart, end: columnHistogram.length, type: 'character' });
 	}
 
+	const wordThreshold = gapSizes.reduce((acc, gap) => acc + gap, 0) / gapSizes.length;
+	segments.forEach((segment, index) => {
+		if (segment.type === 'gap') {
+			if (segment.end - segment.start > wordThreshold * 1.5) {
+				segments[index].type = 'space';
+			}
+		}
+	});
+
 	return segments;
-}
+};
 
 export const extractCharacterFeatures = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -45,6 +104,12 @@ export const extractCharacterFeatures = (canvas: Canvas, ctx: CanvasRenderingCon
 	for (let i = 0; i < data.length; i += 4) {
 		features.push(data[i] === 0 ? 1 : 0);
 	}
+
+	const notEmpty = features.some((pixel) => pixel === 1) && features.some((pixel) => pixel === 0);
+
+    if (!notEmpty) {
+        return new Array(data.length).fill(0);
+    }
 
 	return features;
 }

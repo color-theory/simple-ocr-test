@@ -1,1 +1,1 @@
-export const vectorSize = 30;
+export const vectorSize = 40;

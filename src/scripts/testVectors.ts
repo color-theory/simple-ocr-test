@@ -12,7 +12,7 @@ const ctx = canvas.getContext('2d');
 
 const fontStyle = 'normal';
 const fontName = 'Arial';
-const characterToTest = '8';
+const characterToTest = ',';
 
 printCharacter( canvas, ctx, characterToTest, fontName, fontStyle, vectorSize );
 convertToGreyscale(canvas, ctx);
@@ -22,7 +22,7 @@ scaleImage(canvas, ctx, vectorSize, vectorSize);
 const visiblePixels = extractCharacterFeatures(canvas, ctx);
 
 const vectors = getReferenceVectors();
-const k = 5;
+const k = 10;
 const bestGuess = knn(vectors, visiblePixels, k);
 console.log(`\nBest guess(with weighted average out of ${k} votes): ${bestGuess}`);
 visualizeVector( visiblePixels, vectorSize );
