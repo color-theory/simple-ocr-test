@@ -7,9 +7,11 @@ import { loadImage, Image } from 'canvas';
 import { getReferenceVectors } from './vectors';
 import { knn } from './knn';
 import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareLine, prepareSegment, pad, invertIfDarkBackground } from './preprocess';
-import { getCharacterSegments, getLineSegments, extractCharacterFeatures } from './extraction';
+import { getCharacterSegments, getLineSegments, extractCharacterFeatures, getBounds } from './extraction';
 import { vectorSize } from './config';
-import { progressBar } from './util';
+import { progressBar, visualizeVector } from './util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export const preprocessImage = (image: Image) => {
 	const { canvas, ctx } = createAndLoadCanvas(image);
@@ -17,7 +19,8 @@ export const preprocessImage = (image: Image) => {
 	invertIfDarkBackground(canvas, ctx);
 	binarize(canvas, ctx);
 	pad(canvas, ctx, 10);
-	cropToBoundingBox(canvas, ctx);
+	const { minY, maxY } = getBounds(canvas, ctx);
+	cropToBoundingBox(canvas, ctx, minY, maxY);
 
 	return { canvas, ctx };
 };
@@ -31,8 +34,12 @@ const ocr = (imagePath: string) => {
 		console.log(`Found ${lines.length} lines. Analyzing...`);
 		lines.forEach((line, lineIndex) => {
 			const { lineCanvas, lineCtx } = prepareLine(canvas, line, vectorSize);
-			const segments = getCharacterSegments(lineCanvas, lineCtx, line.end - line.start);
+			pad(lineCanvas, lineCtx, 2);
+			const { minY, maxY } = getBounds(lineCanvas, lineCtx);
+			cropToBoundingBox(lineCanvas, lineCtx, minY, maxY);
+			pad(lineCanvas, lineCtx, 1);
 
+			const segments = getCharacterSegments(lineCanvas, lineCtx, minY - maxY);
 			segments.forEach((segment, index) => {
 				if (segment.type == 'space') {
 					outputText += ' ';
@@ -42,8 +49,10 @@ const ocr = (imagePath: string) => {
 					return;
 				}
 				progressBar(index + 1, segments.length, `Analyzing line ${lineIndex + 1} segments:`);
-				const { segmentCanvas, segmentCtx } = prepareSegment( lineCanvas, segment, vectorSize);				
+				const { segmentCanvas, segmentCtx } = prepareSegment( lineCanvas, segment, vectorSize);
+
 				const features = extractCharacterFeatures(segmentCanvas, segmentCtx);
+
 				const vectors = getReferenceVectors();
 				const k = 10;
 				const bestGuess = knn(vectors, features, k);

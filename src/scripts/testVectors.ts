@@ -1,28 +1,68 @@
-import { createCanvas } from 'canvas';
+import { createCanvas, registerFont } from 'canvas';
 import { knn } from '../app/knn';
 import { getReferenceVectors } from '../app/vectors';
-import { extractCharacterFeatures } from '../app/extraction';
+import { extractCharacterFeatures, getBounds } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
-import { printCharacter } from './util';
+import { printCharacter, printFamily } from './util';
 import { vectorSize } from '../app/config';
-import { visualizeVector } from '../app/util';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const canvas = createCanvas(vectorSize, vectorSize);
 const ctx = canvas.getContext('2d');
 
-const fontStyle = 'normal';
-const fontName = 'Arial';
-const characterToTest = ',';
+const getFonts = () => {
+	const fontsPath = path.resolve(__dirname, '../fonts');
+	const files = fs.readdirSync(fontsPath);
+	const ttfFiles = files.filter(file => path.extname(file).toLowerCase() === '.ttf');
+	const result = ttfFiles.map(file => ({ name: file.slice(0,-4), path: path.join(fontsPath, file) }));
+	return result;
+  }
+  
+const registerFonts = (fonts: { name: string, path: string }[]) => {
+	fonts.forEach((font) => {
+	  registerFont(font.path, { family: font.name });
+	});
+}
 
-printCharacter( canvas, ctx, characterToTest, fontName, fontStyle, vectorSize );
-convertToGreyscale(canvas, ctx);
-binarize(canvas, ctx);
-cropToBoundingBox(canvas, ctx);
-scaleImage(canvas, ctx, vectorSize, vectorSize);
-const visiblePixels = extractCharacterFeatures(canvas, ctx);
+const fonts = getFonts();
+console.log(`Found ${fonts.length} fonts. Registering fonts...`);
+registerFonts(fonts);
+console.log('Fonts registered. Generating reference vectors...');
 
-const vectors = getReferenceVectors();
-const k = 10;
-const bestGuess = knn(vectors, visiblePixels, k);
-console.log(`\nBest guess(with weighted average out of ${k} votes): ${bestGuess}`);
-visualizeVector( visiblePixels, vectorSize );
+const characterData = fs.readFileSync(path.resolve(__dirname, '../data/characters-raw.txt'), 'utf8');
+const characters = characterData.split(/\r?\n/);
+
+let wrongGuesses = 0;
+let correctGuesses = 0;
+
+fonts.forEach((font) => {
+	const fontName = font.name;
+	const fontStyle = "normal";
+	characters.forEach((character: string) => {
+		const characterToTest = character;
+		const {canvas: familyCanvas, ctx: familyCtx} = printFamily(fontName, fontStyle, vectorSize, characters);
+		const {minY, maxY} = getBounds(familyCanvas, familyCtx);
+
+		printCharacter( canvas, ctx, characterToTest, fontName, fontStyle, vectorSize );
+		convertToGreyscale(canvas, ctx);
+		binarize(canvas, ctx);
+		cropToBoundingBox(canvas, ctx,minY, maxY);
+		scaleImage(canvas, ctx, vectorSize, vectorSize);
+		binarize(canvas, ctx);
+		const visiblePixels = extractCharacterFeatures(canvas, ctx);
+
+		const vectors = getReferenceVectors();
+		const k = 5;
+		const bestGuess = knn(vectors, visiblePixels, k);
+		if(bestGuess === characterToTest) {
+			correctGuesses++;
+		} else {
+			console.log(`Incorrect guess! ${characterToTest} was incorrectly identified as ${bestGuess}`);
+			wrongGuesses++;
+		}
+	});
+});
+
+console.log(`\nCorrect guesses: ${correctGuesses}`);
+console.log(`Incorrect guesses: ${wrongGuesses}`);

@@ -32,12 +32,6 @@ export const getLineSegments = (canvas: Canvas, ctx: CanvasRenderingContext2D) =
 	return lines;
 }
 
-export const getCharacterSegments = (canvas: Canvas, ctx: CanvasRenderingContext2D, lineHeight: number) => {
-	const columnHistogram = calculateColumnHistogram(canvas, ctx);
-	const segments = segmentCharacters(columnHistogram, lineHeight);
-	return segments;
-};
-
 const calculateColumnHistogram = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	const data = imageData.data;
@@ -96,6 +90,12 @@ const segmentCharacters = (columnHistogram: number[], lineHeight: number) => {
 	return segments;
 };
 
+export const getCharacterSegments = (canvas: Canvas, ctx: CanvasRenderingContext2D, lineHeight: number) => {
+	const columnHistogram = calculateColumnHistogram(canvas, ctx);
+	const segments = segmentCharacters(columnHistogram, lineHeight);
+	return segments;
+};
+
 export const extractCharacterFeatures = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	const data = imageData.data;
@@ -113,4 +113,36 @@ export const extractCharacterFeatures = (canvas: Canvas, ctx: CanvasRenderingCon
 
 	return features;
 }
+
+export const getBounds = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let minY = null;
+    let maxY = null;
+	let minX = null;
+	let maxX = null;
+
+    for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+            const i = (y * canvas.width + x) * 4;
+
+            // Detect first non-white row (upper bound)
+            if (data[i] < 255 || data[i + 1] < 255 || data[i + 2] < 255) {
+                if (minY === null) minY = y;
+                maxY = y; // Keep updating maxY for every non-background pixel row
+				minX = minX !== null ? Math.min(minX, x) : x;
+				maxX = maxX !== null ? Math.max(maxX, x) : x;
+                break;
+            }
+        }
+    }
+
+    // Set defaults if no foreground was found
+    minY = minY !== null ? minY : 0;
+    maxY = maxY !== null ? maxY : canvas.height;
+	minX = minX !== null ? minX : 0;
+	maxX = maxX !== null ? maxX : canvas.width;
+
+    return { minX, minY, maxX, maxY };
+};
 

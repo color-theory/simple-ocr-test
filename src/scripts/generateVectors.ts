@@ -1,11 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { createCanvas, registerFont } from 'canvas';
-import { extractCharacterFeatures } from '../app/extraction';
+import { extractCharacterFeatures, getBounds } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
-import { printCharacter } from './util';
+import { printCharacter, printFamily } from './util';
 import { vectorSize } from '../app/config';
-import { visualizeVector } from '../app/util';
 
 const canvas = createCanvas(vectorSize, vectorSize);
 const ctx = canvas.getContext('2d');
@@ -36,15 +35,21 @@ console.log('Fonts registered. Generating reference vectors...');
 
 const fontStyles = ["normal"];
 fonts.forEach((font) => {
-  fontStyles.forEach((fontStyle) => {
+  fontStyles.forEach((fontStyle,index) => {
+    const {canvas: familyCanvas, ctx: familyCtx} = printFamily(font.name, fontStyle, vectorSize, characters);
+    const {minY, maxY} = getBounds(familyCanvas, familyCtx);
+    console.log(`Family saved as ${font.name}-family.png minY: ${minY}, maxY: ${maxY}`);
+
+
     characters.forEach((character: string,) => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       printCharacter(canvas, ctx, character, font.name, fontStyle, vectorSize);
       convertToGreyscale(canvas, ctx);
       binarize(canvas, ctx);
-      cropToBoundingBox(canvas, ctx);  
+      cropToBoundingBox(canvas, ctx, minY, maxY);  
       scaleImage(canvas, ctx, vectorSize, vectorSize);
+      binarize(canvas, ctx);
       const visiblePixels = extractCharacterFeatures(canvas, ctx);
-
       vectors.push({
         character,
         pixelData: visiblePixels,
