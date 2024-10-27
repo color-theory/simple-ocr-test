@@ -1,10 +1,8 @@
 const euclideanDistance = (vector1: number[], vector2: number[]) => {
 	let distance = 0;
-
-	for (let i = 0; i < vector1.length; i++) {
+	for (let i = 0; i < vector2.length; i++) {
 		distance += Math.pow(vector1[i] - vector2[i], 2);
 	}
-
 	return Math.sqrt(distance);
 };
 
@@ -24,7 +22,7 @@ const vote = (guesses: any) => {
 	const votesWithAverages = Array.from(votes.entries()).map(([character, [confidence, count]]) => {
 		return [character, confidence / count];
 	});
-
+	
 	const sortedVotes = votesWithAverages.sort((a, b) => b[1] - a[1]);
 
 	return sortedVotes[0];
