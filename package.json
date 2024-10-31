@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc && npm run copy-data",
-    "generate-vectors": "ts-node ./src/scripts/generateVectors.ts",
-    "test-vectors": "ts-node ./src/scripts/testVectors.ts",
-    "copy-data": "copyfiles -u 1 src/data/**/* dist/"
+    "generate-vectors": "npm run build && node ./dist/scripts/generateVectors.js",
+    "test-vectors": "npm run build && node ./dist/scripts/testVectors.js",
+    "copy-data": "copyfiles -u 1 src/data/**/* dist/ && copyfiles -u 1 src/fonts/* dist/"
   },
   "repository": {
     "type": "git",

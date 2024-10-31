@@ -9,4 +9,9 @@
 import ocr from './app';
 
 // Run the OCR function with the image path provided as an argument
-ocr(process.argv[2]);
+(async () => {
+	const start = Date.now();
+	await ocr(process.argv[2]);
+	const end = Date.now();
+	console.log(`Execution time: ${end - start}ms`);
+})();
