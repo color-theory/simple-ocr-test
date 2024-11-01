@@ -1,17 +1,30 @@
 import * as os from 'os';
-let activeWorkers = 0;
 const maxWorkers = os.cpus().length;
+let activeWorkers = 0;
 const taskQueue: (() => Promise<void>)[] = [];
-export const runWorkerTask = (task: () => Promise<void>) => {
-	if (activeWorkers < maxWorkers) {
-		activeWorkers++;
-		task().finally(() => {
-			activeWorkers--;
-			if (taskQueue.length > 0) {
-				runWorkerTask(taskQueue.shift()!);
+
+export const runWorkerTask = <T>(task: () => Promise<T>): Promise<T> => {
+	return new Promise((resolve, reject) => {
+		const executeTask = async () => {
+			try {
+				activeWorkers++;
+				const result = await task();
+				resolve(result);
+			} catch (error) {
+				reject(error);
+			} finally {
+				activeWorkers--;
+				if (taskQueue.length > 0) {
+					const nextTask = taskQueue.shift();
+					nextTask?.();
+				}
 			}
-		});
-	} else {
-		taskQueue.push(task);
-	}
-}
+		};
+
+		if (activeWorkers < maxWorkers) {
+			executeTask();
+		} else {
+			taskQueue.push(executeTask);
+		}
+	});
+};
