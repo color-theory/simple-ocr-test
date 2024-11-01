@@ -4,8 +4,8 @@
  * @returns The text extracted from the image
  */
 import { loadImage, Image } from 'canvas';
-import { getReferenceVectors } from './vectors';
-import { getNearestNeighbors } from './knn';
+import { Worker } from 'worker_threads';
+import path from 'path';
 import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareLine, prepareSegment, pad, invertIfDarkBackground } from './preprocess';
 import { getCharacterSegments, getLineSegments, extractCharacterFeatures, getBounds } from './extraction';
 import { vectorSize } from './config';
@@ -32,6 +32,7 @@ const ocr = async (imagePath: string) => {
 	const lines = getLineSegments(canvas, ctx);
 	console.log(`Found ${lines.length} lines. Analyzing...`);
 	let lineIndex = 0;
+	let promises = [];
 	for (const line of lines) {
 		lineIndex++;
 		const { lineCanvas, lineCtx } = prepareLine(canvas, line, vectorSize);
@@ -43,27 +44,41 @@ const ocr = async (imagePath: string) => {
 		const segments = getCharacterSegments(lineCanvas, lineCtx, minY - maxY);
 
 		let segmentIndex = 0;
+		let lineFeatures = [];
 		for (const segment of segments) {
 			segmentIndex++;
 			if (segment.type == 'space') {
-				outputText += ' ';
+				lineFeatures.push(new Array(vectorSize * vectorSize).fill(0));
 				continue;
 			};
 			if (segment.type == 'gap') {
 				continue;
 			}
-			progressBar(segmentIndex, segments.length, `Analyzing line ${lineIndex} segments:`);
+
 			const { segmentCanvas, segmentCtx } = prepareSegment(lineCanvas, segment, vectorSize);
 
 			const features = extractCharacterFeatures(segmentCanvas, segmentCtx);
-
-			const vectors = getReferenceVectors();
-			const k = 10;
-			const bestGuess = await getNearestNeighbors(vectors, features, k);
-			outputText += bestGuess;
+			lineFeatures.push(features);
 		};
-		outputText += '\n';
+		const linePromise = new Promise<string>((resolve, reject) => {
+			const worker = new Worker(path.resolve(__dirname, './concurrency/lineWorker.js'), {
+				workerData: { lineFeatures, segments, lineIndex }
+			});
+
+			worker.on('message', (result: string) => resolve(result));
+			worker.on('error', reject);
+			worker.on('exit', (code) => {
+				if (code !== 0) {
+					reject(new Error(`Worker stopped with exit code ${code}`));
+				}
+			});
+		});
+
+		promises.push(linePromise);
 	};
+	const results = await Promise.all(promises);
+	results.forEach((result) => outputText += result);
+
 	console.log(`\n\nBest guess: \n${outputText}\n`);
 };
 

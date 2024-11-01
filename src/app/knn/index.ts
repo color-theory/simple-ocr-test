@@ -1,9 +1,12 @@
-import * as os from 'os';
-import * as path from 'path';
-import { Worker } from 'worker_threads';
-import { ReferenceVector, Result } from './types';
+import { ReferenceVector, Result } from '../types';
 
-const numWorkers = os.cpus().length;
+const euclideanDistance = (vector1: number[], vector2: number[]) => {
+	let distance = 0;
+	for (let i = 0; i < vector2.length; i++) {
+		distance += Math.pow(vector1[i] - vector2[i], 2);
+	}
+	return Math.sqrt(distance);
+};
 
 const vote = (guesses: any) => {
 	const votes = new Map();
@@ -27,43 +30,15 @@ const vote = (guesses: any) => {
 	return sortedVotes[0];
 }
 
-const runKnnWorker = async (vectorSubset: ReferenceVector[], vector: number[], k: number) => {
-	return new Promise<Result[]>((resolve, reject) => {
-		const workerData = { vectorSubset, vector, k };
-		const workerPath = path.resolve(__dirname, 'knnWorker.js');
-		const worker = new Worker(workerPath, {
-			workerData
-		});
-
-		worker.on('message', (message: Result[]) => {
-			resolve(message);
-		});
-
-		worker.on('error', (error) => {
-			console.log("Error from worker:", error);
-			return reject(error);
-		});
-	}
-	);
-}
-
-
 export const getNearestNeighbors = async (vectors: ReferenceVector[], vector: number[], k: number) => {
-	const chunkSize = Math.floor(vectors.length / numWorkers); // Calculate the base chunk size
-	const promises = [];
+	const distances = vectors.map((vectorData): Result => {
+		return {
+			character: vectorData.character,
+			distance: euclideanDistance(vector, vectorData.pixelData),
+		};
+	});
+	distances.sort((a, b) => a.distance - b.distance);
+	const bestGuesses = distances.slice(0, k);
 
-	for (let i = 0; i < numWorkers; i++) {
-		const start = i * chunkSize;
-		const end = i === numWorkers - 1 ? vectors.length : start + chunkSize; // Last chunk takes remaining items
-
-		const vectorSubset = vectors.slice(start, end);
-		promises.push(runKnnWorker(vectorSubset, vector, k));
-	}
-
-	const results: Result[][] = await Promise.all(promises);
-	const combinedResults: Result[] = results.flat();
-	combinedResults.sort((a, b) => a.distance - b.distance);
-
-	const bestGuesses = combinedResults.slice(0, k);
 	return vote(bestGuesses)[0];
 }
