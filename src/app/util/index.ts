@@ -1,7 +1,7 @@
-export const progressBar = (current: number, total: number, label: string) => {
+export const progressBar = (current: number, total: number, label: string, lineNumber: number) => {
     const percentage = Math.round((current / total) * 100);
     const bar = '='.repeat(Math.round(percentage / 2)) + ' '.repeat(50 - Math.round(percentage / 2));
-    process.stdout.write(`\r${label} [${bar}] ${percentage}%`);
+    process.stdout.write(`${label} [${bar}] ${percentage}%`);
 }
 
 export const visualizeVector = (vector: number[], vectorSize: number) => {

@@ -18,7 +18,7 @@ const getFonts = () => {
   const fontsPath = path.resolve(__dirname, '../fonts');
   const files = fs.readdirSync(fontsPath);
   const ttfFiles = files.filter(file => path.extname(file).toLowerCase() === '.ttf');
-  const result = ttfFiles.map(file => ({ name: file.slice(0,-4), path: path.join(fontsPath, file) }));
+  const result = ttfFiles.map(file => ({ name: file.slice(0, -4), path: path.join(fontsPath, file) }));
   return result;
 }
 
@@ -35,9 +35,9 @@ console.log('Fonts registered. Generating reference vectors...');
 
 const fontStyles = ["normal"];
 fonts.forEach((font) => {
-  fontStyles.forEach((fontStyle,index) => {
-    const {canvas: familyCanvas, ctx: familyCtx} = printFamily(font.name, fontStyle, vectorSize, characters);
-    const {minY, maxY} = getBounds(familyCanvas, familyCtx);
+  fontStyles.forEach((fontStyle, index) => {
+    const { canvas: familyCanvas, ctx: familyCtx } = printFamily(font.name, fontStyle, vectorSize, characters);
+    const { minY, maxY } = getBounds(familyCanvas, familyCtx);
     console.log(`Family saved as ${font.name}-family.png minY: ${minY}, maxY: ${maxY}`);
 
 
@@ -46,7 +46,7 @@ fonts.forEach((font) => {
       printCharacter(canvas, ctx, character, font.name, fontStyle, vectorSize);
       convertToGreyscale(canvas, ctx);
       binarize(canvas, ctx);
-      cropToBoundingBox(canvas, ctx, minY, maxY);  
+      cropToBoundingBox(canvas, ctx, minY, maxY);
       scaleImage(canvas, ctx, vectorSize, vectorSize);
       binarize(canvas, ctx);
       const visiblePixels = extractCharacterFeatures(canvas, ctx);

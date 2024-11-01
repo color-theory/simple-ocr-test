@@ -1,3 +1,5 @@
+import { ReferenceVector, Result } from '../types';
+
 const euclideanDistance = (vector1: number[], vector2: number[]) => {
 	let distance = 0;
 	for (let i = 0; i < vector2.length; i++) {
@@ -22,24 +24,21 @@ const vote = (guesses: any) => {
 	const votesWithAverages = Array.from(votes.entries()).map(([character, [confidence, count]]) => {
 		return [character, confidence / count];
 	});
-	
+
 	const sortedVotes = votesWithAverages.sort((a, b) => b[1] - a[1]);
 
 	return sortedVotes[0];
 }
 
-
-
-export const knn = (vectors: { character: string, pixelData: number[] }[], vector: number[], k: number) => {
-	const distances = vectors.map((vectorData) => {
+export const getNearestNeighbors = async (vectors: ReferenceVector[], vector: number[], k: number) => {
+	const distances = vectors.map((vectorData): Result => {
 		return {
 			character: vectorData.character,
 			distance: euclideanDistance(vector, vectorData.pixelData),
 		};
 	});
-
 	distances.sort((a, b) => a.distance - b.distance);
-
 	const bestGuesses = distances.slice(0, k);
-	return vote(bestGuesses)[0]; // Return the character with the highest confidence
+
+	return vote(bestGuesses)[0];
 }
