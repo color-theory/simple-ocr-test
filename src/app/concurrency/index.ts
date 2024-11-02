@@ -2,6 +2,7 @@ import * as os from 'os';
 const maxWorkers = os.cpus().length;
 let activeWorkers = 0;
 const taskQueue: (() => Promise<void>)[] = [];
+console.log(`Max workers: ${maxWorkers}`);
 
 export const runWorkerTask = <T>(task: () => Promise<T>): Promise<T> => {
 	return new Promise((resolve, reject) => {

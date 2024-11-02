@@ -9,8 +9,10 @@ import path from 'path';
 import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareLine, prepareSegment, pad, invertIfDarkBackground } from './preprocess';
 import { getCharacterSegments, getLineSegments, extractCharacterFeatures, getBounds } from './extraction';
 import { vectorSize } from './config';
-import { progressBar } from './util';
+import { progressBar, padNumber } from './util';
 import { runWorkerTask } from './concurrency';
+import { LineResult } from './concurrency/lineWorker';
+import { getCorrectedText } from './postprocess';
 
 export const preprocessImage = (image: Image) => {
 	const { canvas, ctx } = createAndLoadCanvas(image);
@@ -32,10 +34,16 @@ const ocr = async (imagePath: string) => {
 	const { canvas, ctx } = preprocessImage(image);
 	const lines = getLineSegments(canvas, ctx);
 	console.log(`Found ${lines.length} lines. Analyzing...`);
-	let lineIndex = 0;
 	let promises = [];
-	for (const line of lines) {
-		lineIndex++;
+	let spaceForBars = "";
+	
+	lines.forEach(() => {
+		spaceForBars += "\n";
+	});
+	console.log(spaceForBars);
+
+	for (const [lineIndex, line] of lines.entries()) {
+		const currentLineIndex = lineIndex + 1;
 		const { lineCanvas, lineCtx } = prepareLine(canvas, line, vectorSize);
 		pad(lineCanvas, lineCtx, 2);
 		const { minY, maxY } = getBounds(lineCanvas, lineCtx);
@@ -46,6 +54,7 @@ const ocr = async (imagePath: string) => {
 
 		let segmentIndex = 0;
 		let lineFeatures = [];
+
 		for (const segment of segments) {
 			segmentIndex++;
 			if (segment.type == 'space') {
@@ -65,10 +74,19 @@ const ocr = async (imagePath: string) => {
 			return new Promise<string>((resolve, reject) => {
 
 				const worker = new Worker(path.resolve(__dirname, './concurrency/lineWorker.js'), {
-					workerData: { lineFeatures, segments, lineIndex }
+					workerData: { lineFeatures, segments, lineIndex: currentLineIndex }
 				});
-
-				worker.on('message', (result: string) => resolve(result));
+				worker.on('message', (lineResult: LineResult) => {
+					if (lineResult.type === 'progress') {
+						const progress = lineResult.progress || 0;
+						progressBar(progress, lineFeatures.length, `Analyzing line ${padNumber(lineResult.lineIndex, 2)} segments:`, lineResult.lineIndex, lines.length);
+						return;
+					}else if (lineResult.type === 'result') {
+						const result = lineResult.data || '';
+						progressBar(100, 100, `Analyzing line ${padNumber(lineResult.lineIndex, 2)} segments:`, lineResult.lineIndex, lines.length);
+						resolve(result);
+					}
+				});
 				worker.on('error', reject);
 				worker.on('exit', (code) => {
 					if (code !== 0) {
@@ -81,10 +99,12 @@ const ocr = async (imagePath: string) => {
 		promises.push(linePromise);
 	};
 	const results = await Promise.all(promises);
-	results.forEach((result: string) => outputText += result);
+	results.forEach((result: string) => outputText += result + "\n");
+	process.stdout.cursorTo(0, process.stdout.rows -1 );
+	console.log("\nGenerated text: \n", outputText);
+	const finalResult = await getCorrectedText(outputText);
 
-	console.log(`\n\nBest guess: \n${outputText}\n`);
+	console.log(`\n\nBest guess: \n${finalResult}\n`);
 };
-
 
 export default ocr;
