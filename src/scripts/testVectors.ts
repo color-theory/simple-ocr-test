@@ -4,6 +4,7 @@ import { getReferenceVectors } from '../app/vectors';
 import { extractCharacterFeatures, getBounds } from '../app/extraction';
 import { cropToBoundingBox, scaleImage, convertToGreyscale, binarize } from '../app/preprocess';
 import { printCharacter, printFamily } from './util';
+import { hideCursor, progressBar, showCursor } from '../app/util';
 import { vectorSize } from '../app/config';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -35,15 +36,17 @@ const characters = characterData.split(/\r?\n/);
 
 let wrongGuesses = 0;
 let correctGuesses = 0;
+
 (async () => {
+	hideCursor();
 	for (const font of fonts) {
 		const fontName = font.name;
 		const fontStyle = "normal";
-		for (const character of characters) {
+		for (const [characterIndex, character] of characters.entries()) {
 			const characterToTest = character;
 			const { canvas: familyCanvas, ctx: familyCtx } = printFamily(fontName, fontStyle, vectorSize, characters);
 			const { minY, maxY } = getBounds(familyCanvas, familyCtx);
-			console.log(`generating test vector for ${characterToTest} in font ${fontName} with style ${fontStyle}`);
+			progressBar(characterIndex+1, characters.length, `generating test vectors for ${fontName}`);
 			printCharacter(canvas, ctx, characterToTest, fontName, fontStyle, vectorSize);
 			convertToGreyscale(canvas, ctx);
 			binarize(canvas, ctx);
@@ -58,7 +61,6 @@ let correctGuesses = 0;
 			if (bestGuess === characterToTest) {
 				correctGuesses++;
 			} else {
-				console.log(`Incorrect guess! ${characterToTest} was incorrectly identified as ${bestGuess}`);
 				wrongGuesses++;
 			}
 		};
@@ -66,4 +68,5 @@ let correctGuesses = 0;
 
 	console.log(`\nCorrect guesses: ${correctGuesses}`);
 	console.log(`Incorrect guesses: ${wrongGuesses}`);
+	showCursor();
 })();

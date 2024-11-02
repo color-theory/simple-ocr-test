@@ -9,7 +9,7 @@ import path from 'path';
 import { createAndLoadCanvas, convertToGreyscale, cropToBoundingBox, binarize, prepareLine, prepareSegment, pad, invertIfDarkBackground } from './preprocess';
 import { getCharacterSegments, getLineSegments, extractCharacterFeatures, getBounds } from './extraction';
 import { vectorSize } from './config';
-import { progressBar, padNumber } from './util';
+import { progressBar, padNumber, hideCursor, showCursor } from './util';
 import { runWorkerTask } from './concurrency';
 import { LineResult } from './concurrency/lineWorker';
 import { getCorrectedText } from './postprocess';
@@ -26,7 +26,7 @@ export const preprocessImage = (image: Image) => {
 	return { canvas, ctx };
 };
 
-const ocr = async (imagePath: string) => {
+const ocr = async (imagePath: string, spellCheck: boolean) => {
 	const image = await loadImage(imagePath);
 
 	let outputText = '';
@@ -41,7 +41,7 @@ const ocr = async (imagePath: string) => {
 		spaceForBars += "\n";
 	});
 	console.log(spaceForBars);
-
+	hideCursor();
 	for (const [lineIndex, line] of lines.entries()) {
 		const currentLineIndex = lineIndex + 1;
 		const { lineCanvas, lineCtx } = prepareLine(canvas, line, vectorSize);
@@ -101,10 +101,17 @@ const ocr = async (imagePath: string) => {
 	const results = await Promise.all(promises);
 	results.forEach((result: string) => outputText += result + "\n");
 	process.stdout.cursorTo(0, process.stdout.rows -1 );
-	console.log("\nGenerated text: \n", outputText);
-	const finalResult = await getCorrectedText(outputText);
+	
+	let finalResult = outputText;
+
+	if (spellCheck) {
+		console.log("\nSending text to spellcheck server: \n");
+		finalResult = await getCorrectedText(outputText);
+	}
 
 	console.log(`\n\nBest guess: \n${finalResult}\n`);
+	showCursor();
+	return finalResult;
 };
 
 export default ocr;

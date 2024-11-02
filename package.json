@@ -7,7 +7,8 @@
     "build": "tsc && npm run copy-data",
     "generate-vectors": "npm run build && node ./dist/scripts/generateVectors.js",
     "test-vectors": "npm run build && node ./dist/scripts/testVectors.js",
-    "copy-data": "copyfiles -u 1 src/data/**/* dist/ && copyfiles -u 1 src/fonts/* dist/"
+    "copy-data": "copyfiles -u 1 src/data/**/* dist/ && copyfiles -u 1 src/fonts/* dist/",
+    "ocr": "npm run build && node ./dist/index.js"
   },
   "repository": {
     "type": "git",
