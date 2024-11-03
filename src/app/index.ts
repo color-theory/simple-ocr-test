@@ -12,7 +12,7 @@ import { vectorSize } from './config';
 import { progressBar, padNumber, hideCursor, showCursor } from './util';
 import { runWorkerTask } from './concurrency';
 import { LineResult } from './concurrency/lineWorker';
-import { getCorrectedText } from './postprocess';
+import { getCorrectedText, quickFilter } from './postprocess';
 
 export const preprocessImage = (image: Image) => {
 	const { canvas, ctx } = createAndLoadCanvas(image);
@@ -101,12 +101,13 @@ const ocr = async (imagePath: string, spellCheck: boolean) => {
 	const results = await Promise.all(promises);
 	results.forEach((result: string) => outputText += result + "\n");
 	process.stdout.cursorTo(0, process.stdout.rows -1 );
-	
-	let finalResult = outputText;
+
+	const quickFilteredText = quickFilter(outputText);
+	let finalResult = quickFilteredText;
 
 	if (spellCheck) {
 		console.log("\nSending text to spellcheck server: \n");
-		finalResult = await getCorrectedText(outputText);
+		finalResult = await getCorrectedText(finalResult);
 	}
 
 	console.log(`\n\nBest guess: \n${finalResult}\n`);
