@@ -22,6 +22,10 @@ export const quickFilter = (text: string): string => {
     text = text.replace(/Cti/g, "Cli");
     text = text.replace(/(?<=\s)lt(?=\w)/g, "it");
     text = text.replace(/1h/g, "th");
+    text = text.replace(/(?<=\w)nl/g, "ni");
+    text = text.replace(/(?<=\w)tlo/g, "tio");
+    text = text.replace(/(?<=\s)1/g, "t");
+    text = text.replace(/(?<=\w)tlm/g, "tim");
     text = text.replace(/(?<=[a-z])[A-Z](?=\s)/g, (match) => match.toLowerCase());
     text = text.replace(/(?<=[a-z])[A-Z][A-Z]/g, (match) => match.toLowerCase());
 

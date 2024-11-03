@@ -50,13 +50,14 @@ const calculateColumnHistogram = (canvas: Canvas, ctx: CanvasRenderingContext2D)
 };
 
 const segmentCharacters = (columnHistogram: number[], lineHeight: number) => {
-	const segments: {start: number, end: number, type: string}[] = [];
+	const segments: { start: number, end: number, type: string }[] = [];
 	let segmentStart = 0;
 	let inSegment = false;
 	let outOfSegmentCount = 0;
 	let averageCharacterWidth = lineHeight / 2;
 	let gapSizes = [];
 
+	let segmentLength = 0;
 	for (let x = 0; x < columnHistogram.length; x++) {
 		if (columnHistogram[x] > 0 && !inSegment) {
 			segments.push({ start: segmentStart, end: x, type: 'gap' });
@@ -64,7 +65,7 @@ const segmentCharacters = (columnHistogram: number[], lineHeight: number) => {
 			segmentStart = x;
 			inSegment = true;
 			outOfSegmentCount = 0;
-		} else if (columnHistogram[x] === 0 && inSegment) {
+		} else if ((columnHistogram[x] === 0 && inSegment)) {
 			const segmentEnd = x;
 			inSegment = false;
 			segments.push({ start: segmentStart, end: segmentEnd, type: 'character' });
@@ -73,6 +74,7 @@ const segmentCharacters = (columnHistogram: number[], lineHeight: number) => {
 		} else if (columnHistogram[x] === 0) {
 			outOfSegmentCount++;
 		}
+		segmentLength++;
 	}
 	if (inSegment) {
 		segments.push({ start: segmentStart, end: columnHistogram.length, type: 'character' });
@@ -107,42 +109,42 @@ export const extractCharacterFeatures = (canvas: Canvas, ctx: CanvasRenderingCon
 
 	const notEmpty = features.some((pixel) => pixel === 1) && features.some((pixel) => pixel === 0);
 
-    if (!notEmpty) {
-        return new Array(data.length).fill(0);
-    }
+	if (!notEmpty) {
+		return new Array(data.length).fill(0);
+	}
 
 	return features;
 }
 
 export const getBounds = (canvas: Canvas, ctx: CanvasRenderingContext2D) => {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    let minY = null;
-    let maxY = null;
+	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	const data = imageData.data;
+	let minY = null;
+	let maxY = null;
 	let minX = null;
 	let maxX = null;
 
-    for (let y = 0; y < canvas.height; y++) {
-        for (let x = 0; x < canvas.width; x++) {
-            const i = (y * canvas.width + x) * 4;
+	for (let y = 0; y < canvas.height; y++) {
+		for (let x = 0; x < canvas.width; x++) {
+			const i = (y * canvas.width + x) * 4;
 
-            // Detect first non-white row (upper bound)
-            if (data[i] < 255 || data[i + 1] < 255 || data[i + 2] < 255) {
-                if (minY === null) minY = y;
-                maxY = y; // Keep updating maxY for every non-background pixel row
+			// Detect first non-white row (upper bound)
+			if (data[i] < 255 || data[i + 1] < 255 || data[i + 2] < 255) {
+				if (minY === null) minY = y;
+				maxY = y; // Keep updating maxY for every non-background pixel row
 				minX = minX !== null ? Math.min(minX, x) : x;
 				maxX = maxX !== null ? Math.max(maxX, x) : x;
-                break;
-            }
-        }
-    }
+				break;
+			}
+		}
+	}
 
-    // Set defaults if no foreground was found
-    minY = minY !== null ? minY : 0;
-    maxY = maxY !== null ? maxY : canvas.height;
+	// Set defaults if no foreground was found
+	minY = minY !== null ? minY : 0;
+	maxY = maxY !== null ? maxY : canvas.height;
 	minX = minX !== null ? minX : 0;
 	maxX = maxX !== null ? maxX : canvas.width;
 
-    return { minX, minY, maxX, maxY };
+	return { minX, minY, maxX, maxY };
 };
 

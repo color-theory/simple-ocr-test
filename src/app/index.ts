@@ -36,7 +36,7 @@ const ocr = async (imagePath: string, spellCheck: boolean) => {
 	console.log(`Found ${lines.length} lines. Analyzing...`);
 	let promises = [];
 	let spaceForBars = "";
-	
+
 	lines.forEach(() => {
 		spaceForBars += "\n";
 	});
@@ -50,7 +50,7 @@ const ocr = async (imagePath: string, spellCheck: boolean) => {
 		cropToBoundingBox(lineCanvas, lineCtx, minY, maxY);
 		pad(lineCanvas, lineCtx, 1);
 
-		const segments = getCharacterSegments(lineCanvas, lineCtx, minY - maxY);
+		const segments = getCharacterSegments(lineCanvas, lineCtx, maxY - minY);
 
 		let segmentIndex = 0;
 		let lineFeatures = [];
@@ -81,7 +81,7 @@ const ocr = async (imagePath: string, spellCheck: boolean) => {
 						const progress = lineResult.progress || 0;
 						progressBar(progress, lineFeatures.length, `Analyzing line ${padNumber(lineResult.lineIndex, 2)} segments:`, lineResult.lineIndex, lines.length);
 						return;
-					}else if (lineResult.type === 'result') {
+					} else if (lineResult.type === 'result') {
 						const result = lineResult.data || '';
 						progressBar(100, 100, `Analyzing line ${padNumber(lineResult.lineIndex, 2)} segments:`, lineResult.lineIndex, lines.length);
 						resolve(result);
@@ -100,7 +100,7 @@ const ocr = async (imagePath: string, spellCheck: boolean) => {
 	};
 	const results = await Promise.all(promises);
 	results.forEach((result: string) => outputText += result + "\n");
-	process.stdout.cursorTo(0, process.stdout.rows -1 );
+	process.stdout.cursorTo(0, process.stdout.rows - 1);
 
 	const quickFilteredText = quickFilter(outputText);
 	let finalResult = quickFilteredText;
